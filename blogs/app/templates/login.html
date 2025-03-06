@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="/static/css/login.css">
+<link rel="stylesheet" href="/static/utils/element.css">
+<!-- 引入组件库 -->
+    <script src="/static/utils/vue.js"></script>
+<script src="/static/utils/element.js"></script>
+    <script src="/static/utils/axios.js"></script>
+</head>
+<body>
+<div id="app">
+
+<div>
+  <el-container>
+    <el-header>
+
+{#      <img src="/static/img/logo.png"  style="height: 80%;margin-top: 5px"/>#}
+    </el-header>
+    <el-main>
+
+      <el-form :model="form"   :rules="rules" ref="ruleForm" style="width: 500px;margin: 10px auto">
+        <el-form-item label="用户名" prop="username" label-width="100px" >
+          <el-input type="text" v-model="form.username"></el-input>
+        </el-form-item>
+        <el-form-item label="密码" prop="password" label-width="100px">
+          <el-input type="password" v-model="form.password"></el-input>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="login">登录</el-button>
+          <el-button type="default" @click="reset">重置</el-button>
+        </el-form-item>
+
+      </el-form>
+
+    </el-main>
+  </el-container>
+</div>
+</div>
+</body>
+</html>
+<script>
+    new Vue({
+        el:"#app",
+        data:{
+            form:{
+                username:"admin",
+                password:"admin",
+              },
+              rules:{
+                username:[{required:true,message:"请输入用户名",trigger:"blur"}],
+                password:[{required:true,message:"请输入密码",trigger:"blur"}]
+              }
+
+        },
+          methods:{
+    login(){
+      this.$refs.ruleForm.validate(val=>{
+        if(!val)return;
+        const d=new FormData()
+          d.append("username",this.form.username)
+          d.append("password",this.form.password)
+       axios.post("/login/",d,{
+           headers:{
+               'Content-Type': 'multipart/form-data'
+           }
+       },)
+          .then(res=>{
+            const data=res.data;
+            if(data.code!==200){
+                this.$message.error(data.msg)
+            }else{
+                //存入到缓存中
+                sessionStorage.setItem("user",JSON.stringify(data.userInfo))
+                setTimeout(()=>{
+                location.href="/index"
+                },500)
+                this.$message.success(data.msg)
+            }
+          })
+      })
+    },
+    reset(){
+      this.$refs.ruleForm.resetFields();
+    }
+
+  }
+    })
+</script>

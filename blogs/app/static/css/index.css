@@ -1,0 +1,20 @@
+#app{
+  max-width: 960px;
+  margin: 0 auto;
+}
+/*头部*/
+.content-header{
+  text-align: center;
+  margin: 0px auto;
+  max-width: 960px;
+}
+.maction{
+  margin: 10px 0px;
+}
+/*头部*/
+
+/*blogs页面*/
+.pages{
+  text-align: center;
+}
+/*blogs页面*/

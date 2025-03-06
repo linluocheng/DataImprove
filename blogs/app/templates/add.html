@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="/static/css/index.css">
+<link rel="stylesheet" href="/static/utils/element.css">
+<link rel="stylesheet" href="/static/utils/editor/css/editormd.css">
+<!-- 引入组件库 -->
+    <script src="/static/utils/vue.js"></script>
+<script src="/static/utils/element.js"></script>
+    <script src="/static/utils/jquery.js"></script>
+    <script src="/static/utils/editor/editormd.js"></script>
+
+    <script src="/static/utils/axios.js"></script>
+</head>
+<body>
+<div id="app">
+    <!--头部-->
+<div class="content-header">
+  header
+  <h3>欢迎来到博客</h3>
+  <div class="block">
+    <el-avatar :size="50" :src="user.avatar"></el-avatar>
+    <div v-text="user.username"></div>
+  </div>
+  <div class="maction">
+    <span><el-link href="/index">首页</el-link></span>
+    |
+    <span><el-link type="success" type="success"  href="/blog/add">发表</el-link></span>
+      |
+
+{##}
+    <span v-show="isLogin">    <el-link  type="danger" @click="logout">退出</el-link></span>
+    <span v-show="!isLogin">    <el-link type="danger" @click="toLogin">登录</el-link></span>
+  </div>
+</div>
+<!--头部-->
+
+
+{#    发表编辑#}
+  <el-form :model="contentForm" :rules="contentRules" ref="ruleForm" label-width="100px" >
+    <el-form-item label="标题" prop="title">
+      <el-input v-model="contentForm.title"></el-input>
+    </el-form-item>
+    <el-form-item label="摘要" prop="description">
+      <el-input v-model="contentForm.description"></el-input>
+    </el-form-item>
+    <el-form-item label="内容" prop="content">
+        <div id="test-editor">
+            <textarea style="display: none;" id="value" v-model="contentForm.content"></textarea>
+        </div>
+    </el-form-item>
+    <el-form-item style="text-align: center" v-show="contentForm.id===-1 || contentForm.user_id===user.uid">
+      <el-button type="primary" @click="blogAdd">创建</el-button>
+      <el-button type="danger" @click="deleteBlog">删除</el-button>
+    </el-form-item>
+  </el-form>
+{#    发表编辑#}
+
+
+
+
+</div>
+</body>
+</html>
+
+<script>
+     new Vue({
+        el: "#app",
+        created(){
+              //加载当前登录用户信息
+            const user=JSON.parse(sessionStorage.getItem("user")||null)
+            if(user===null){
+                this.isLogin=false;
+            }else{
+                this.isLogin=true;
+                this.user=user;
+            }
+            //判断是否存在
+            this.contentForm.id={{ bid }}
+            if(this.contentForm.id!=-1){
+                //编辑页面，获取回显信息
+                this.getBlogDetail()
+            }else{
+                //添加页面，不需要回显
+                this.contentForm.id=-1;
+
+            }
+
+        },
+         mounted(){
+                this.initMark()
+         },
+        data: {
+            editor:null,
+           user:{
+          username:"",
+               uid:-1,
+          avatar:''
+        },
+        isLogin:false,
+        contentForm:{
+                  id:'',
+                  content:'',
+                  user_id:'',
+                  title:'',
+                  description:'',
+                  },
+        contentRules:{
+        title:[{required:true,message:"标题不能为空",trigger:'blur'}],
+        description:[{required:true,message:"标题不能为空",trigger:'blur'}],
+
+    },
+
+        },
+        methods:{
+            initMark(){
+                  this.editor = editormd("test-editor", {
+             width  : "100%",
+             height : "500px;",
+                    path   : "/static/utils/editor/lib/",
+                     saveHTMLToTextarea : true,
+                });
+
+            },
+            //退出登录
+             logout(){
+                //清除当前用户信息即可
+                sessionStorage.removeItem("user")
+                this.user={uid:-1}
+                this.isLogin=false;
+                location.href="/index"
+            },
+            //跳转到登录页面
+            toLogin(){
+                location.href="/login"
+            },
+            {#添加编辑#}
+            //获取博客详情信息
+           async getBlogDetail(){
+                const {data:data}=await axios.get("/getBlog?bid="+this.contentForm.id)
+                this.contentForm.id=data.bid;
+                this.contentForm.user_id=data.user_id;
+                this.contentForm.title=data.title;
+                this.contentForm.description=data.desc;
+                this.contentForm.content=data.content;
+                this.initMark()
+
+            },
+            //删除操作
+            deleteBlog(){
+                    const id=this.contentForm.id;
+                      this.$confirm('此操作将永久删除该记录, 是否继续?', '提示', {
+                          confirmButtonText: '确定',
+                          cancelButtonText: '取消',
+                          type: 'warning'
+                        }).then(res=>{
+                            axios.get("/delete?id="+id).then((res)=>{
+                                const data=res.data;
+                                if(data.code===200){
+                                    setTimeout(()=>{
+                                        location.href="/index"
+                                    },500)
+                                    this.$message.success(data.msg)
+                                }
+                            })
+                      })
+            },
+
+
+            //添加操作
+    blogAdd(){
+         const   uid=this.user.uid
+        if(uid===undefined || undefined==='undefined' || uid==='' || uid===null){
+            return this.$message.error("请先去登录");
+        }
+
+            this.$refs.ruleForm.validate(v=>{
+                if(!v)return;
+                const content=this.editor.getMarkdown()
+            const title=this.contentForm.title
+            const description=this.contentForm.description
+            const data=new FormData();
+                const status=this.contentForm.id//判断是否有博客id，如果有，就是更新，没有就是添加操作
+
+                if(status!=-1){//更新
+
+                      data.append("title",title)
+                    data.append("content",content)
+                    data.append("description",description);
+                    const bid=this.contentForm.id;
+                    const user_id=this.contentForm.user_id
+                    //判断该条记录是否为当前用户发布的
+                   if(user_id!==uid)
+                       return this.$message.error("对该记录只读")
+                    data.append("bid",bid)
+                    data.append("user_id",user_id)
+                 axios.post("/blog/update/",data,{
+                        headers:{
+                            "Content-Type":"multipart/form-data"
+                        }
+            }).then(res=>{
+               const data=res.data
+                if(data.code==200){
+                    this.$message.success(data.msg)
+                    setTimeout(()=>{
+                    location.href="/index"
+                    },500)
+                }else{
+                    this.$message.error(data.msg)
+                }
+            })
+                }else {
+                    //添加
+                    data.append("uid",uid)
+                     data.append("title",title)
+                    data.append("content",content)
+                    data.append("description",description);
+                    axios.post("/blog/add/",data,{
+                        headers:{
+                            "Content-Type":"multipart/form-data"
+                        }
+            }).then(res=>{
+               const data=res.data
+                if(data.code==200){
+                    this.$message.success(data.msg)
+                    setTimeout(()=>{
+                    location.href="/index"
+                    },500)
+                }
+            })
+
+                }
+            })
+
+            },
+
+            {#添加编辑#}
+        }
+    })
+</script>
